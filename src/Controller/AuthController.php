@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\User;
+use App\Util\SiteParser\Inshaker;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -11,9 +12,14 @@ use Symfony\Component\Security\Core\User\UserInterface;
 
 class AuthController extends ApiController
 {
-    public function register(Request $request, UserPasswordEncoderInterface $encoder): JsonResponse
+    public function register(Inshaker $inshaker, Request $request, UserPasswordEncoderInterface $encoder): JsonResponse
     {
+        $inshaker->getRecipe('https://ru.inshaker.com/cocktails/57-mohito');
+        return $this->respondValidationError('Invalid Username or Password');
+
         $em = $this->getDoctrine()->getManager();
+
+
         $request = $this->transformJsonBody($request);
 
         $username = $request->get('username');
