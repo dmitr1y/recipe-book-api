@@ -38,6 +38,15 @@ class ApiController extends AbstractController
         return $this;
     }
 
+    public function testAction(): JsonResponse
+    {
+        return $this->response(
+            [
+                'msg' => 'Hello world',
+            ]
+        );
+    }
+
     /**
      * Returns a JSON response
      *

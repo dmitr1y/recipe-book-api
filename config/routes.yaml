@@ -2,14 +2,14 @@
 #    path: /
 #    controller: App\Controller\DefaultController::index
 register:
-  path: /register
+  path: /api/auth/register
   controller: App\Controller\AuthController::register
   methods: POST
 
-api_login_check:
-  path: /api/login_check
+api_get_token:
+  path: /api/auth/get_token
   controller: App\Controller\AuthController::getTokenUser
 
 test:
   path: /api/test
-  controller: App\Controller\ApiController::test
+  controller: App\Controller\ApiController::testAction
