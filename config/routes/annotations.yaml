@@ -1,5 +1,8 @@
 controllers:
     resource: ../../src/Controller/
+    prefix: '/api'
+    # this is added to the beginning of all imported route names
+    name_prefix: 'api_'
     type: annotation
 
 kernel:
