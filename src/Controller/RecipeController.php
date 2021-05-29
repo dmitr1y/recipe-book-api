@@ -8,9 +8,6 @@ use App\Entity\RecipeIngredient;
 use App\Entity\RecipeTool;
 use App\Entity\Tool;
 use App\Entity\User;
-use App\Repository\IngredientRepository;
-use App\Repository\RecipeRepository;
-use App\Repository\ToolRepository;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -18,15 +15,15 @@ use Symfony\Component\Routing\Annotation\Route;
 class RecipeController extends ApiController
 {
     /**
-     * @Route("/recipe", name="recipe", methods={"GET"})
+     * @Route("/recipe", name="get_recipe", methods={"GET"})
      * @param int $id
      *
      * @return Response
      */
-    public function index(int $id): Response
+    public function getRecipe(int $id): Response
     {
         $em = $this->getDoctrine()->getManager();
-        $recipe_repository = $em->getRepository(RecipeRepository::class);
+        $recipe_repository = $em->getRepository(Recipe::class);
 
         /** @var Recipe $recipe */
         $recipe = $recipe_repository->findBy(
@@ -44,38 +41,50 @@ class RecipeController extends ApiController
     }
 
     /**
-     * @Route("/recipe/create", name="recipe", methods={"POST"})
+     * @Route("/recipe", name="create_recipe", methods={"POST"})
      *
      * @param Request $request
      *
      * @return Response
      */
-    public function create(Request $request): Response
+    public function createRecipe(Request $request): Response
     {
         $data = json_decode($request->getContent(), true);
+
+        if (!isset($data['recipe'])) {
+            return $this->respondValidationError(['Wrong recipe']);
+        }
+
+        $recipe_data = $data['recipe'];
+
+        if (isset($recipe_data['id'])) {
+            return $this->respondValidationError(['Recipe already exist']);
+        }
 
         /** @var User $user */
         $user = $this->getUser();
 
         $recipe = new Recipe();
 
-        if (!isset($data['title'])) {
+        if (!isset($recipe_data['title'])) {
             return $this->respondValidationError(['message' => 'Wrong title']);
         }
 
-        $recipe->setTitle($data['title']);
-        $recipe->setDescription($data['description']);
-        $recipe->setBody($data['body']);
+        $recipe->setTitle($recipe_data['title']);
+        $recipe->setDescription($recipe_data['description']);
+        $recipe->setBody($recipe_data['body']);
 
         $recipe->setCreator($user);
-        $recipe->setTools(
-            $this->createTools($data)
-        );
+
+        $tools = $this->createTools($recipe_data, $recipe);
+        $recipe->setTools($tools);
         $recipe->setIngredients(
-            $this->createIngredients($data)
+            $this->createIngredients($recipe_data)
         );
 
-        $this->getDoctrine()->getManager()->persist($recipe);
+        $em = $this->getDoctrine()->getManager();
+        $em->persist($recipe);
+        $em->flush();
 
         return $this->response(
             [
@@ -85,19 +94,16 @@ class RecipeController extends ApiController
         );
     }
 
-    /**
-     * @param array $data
-     *
-     * @return RecipeTool[]
-     */
-    private function createTools(array $data): array
+    private function createTools(array $data, Recipe $recipe): void
     {
         if (!isset($data['tools'])) {
-            return [];
+            $recipe->setTools([]);
+
+            return;
         }
 
         $em = $this->getDoctrine()->getManager();
-        $tool_repository = $em->getRepository(ToolRepository::class);
+        $tool_repository = $em->getRepository(Tool::class);
         /** @var User $user */
         $user = $this->getUser();
 
@@ -111,6 +117,10 @@ class RecipeController extends ApiController
                 ]
             );
 
+            if (!$tool) {
+                $this->respondWithErrors("Tool with id {$recipe_tool_data['id']} not found");
+            }
+
             $recipe_tool = (new RecipeTool())
                 ->setTool($tool)
                 ->setCount($recipe_tool_data['count'])
@@ -121,7 +131,7 @@ class RecipeController extends ApiController
             $created_tools[] = $recipe_tool;
         }
 
-        return $created_tools;
+        $recipe->setTools($created_tools);
     }
 
     /**
@@ -136,7 +146,7 @@ class RecipeController extends ApiController
         }
 
         $em = $this->getDoctrine()->getManager();
-        $ingredient_repository = $em->getRepository(IngredientRepository::class);
+        $ingredient_repository = $em->getRepository(Ingredient::class);
         /** @var User $user */
         $user = $this->getUser();
 

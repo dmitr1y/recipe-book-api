@@ -4,13 +4,17 @@ namespace App\Entity;
 
 use ApiPlatform\Core\Annotation\ApiResource;
 use App\Repository\IngredientRepository;
+use DateTime;
 use Doctrine\ORM\Mapping as ORM;
+use JsonSerializable;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * @ApiResource()
+ * @ORM\HasLifecycleCallbacks()
  * @ORM\Entity(repositoryClass=IngredientRepository::class)
  */
-class Ingredient
+class Ingredient implements JsonSerializable
 {
     /**
      * @ORM\Id
@@ -30,14 +34,16 @@ class Ingredient
     private $description;
 
     /**
-     * @ORM\Column(type="time")
-     * @var int
+     * @Assert\DateTime()
+     * @ORM\Column(type="datetime")
+     * @var DateTime
      */
     private $created;
 
     /**
-     * @ORM\Column(type="time")
-     * @var int
+     * @Assert\DateTime()
+     * @ORM\Column(type="datetime")
+     * @var DateTime
      */
     private $updated;
 
@@ -81,7 +87,7 @@ class Ingredient
      */
     public function getCreated(): int
     {
-        return $this->created;
+        return $this->created->getTimestamp();
     }
 
     /**
@@ -89,6 +95,33 @@ class Ingredient
      */
     public function getUpdated(): int
     {
-        return $this->updated;
+        return $this->updated->getTimestamp();
+    }
+
+    /**
+     * @ORM\PrePersist
+     */
+    public function setCreated(): void
+    {
+        //todo не перезаписывать поле
+        $this->created = new \DateTime();;
+    }
+
+    /**
+     * @ORM\PrePersist
+     */
+    public function setUpdated(): void
+    {
+        $this->updated = new \DateTime();;
+    }
+
+    public function jsonSerialize(): array
+    {
+        return [
+            'id' => $this->id,
+            'name' => $this->name,
+            'description' => $this->description,
+            'created' => $this->created->getTimestamp(),
+        ];
     }
 }
